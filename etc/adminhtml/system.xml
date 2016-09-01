@@ -15,29 +15,25 @@
                     <label>Test Mode</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
+                <field id="production_url" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>API URL (Production)</label>
+                </field>
+                <field id="testing_url" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>API URL (Testing)</label>
+                </field>
                 <field id="publishable_key" translate="label" type="text" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Publishable Key</label>
                 </field>
                 <field id="secret_key" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Secret Key</label>
                 </field>
-                <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Sort Order</label>
+                <field id="order_status" translate="label" type="select" sortOrder="15" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Order Status</label>
+                    <source_model><!--TODO--></source_model>
                 </field>
-                <field id="allowspecific" translate="label" type="allowspecific" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Payment from Applicable Countries</label>
-                    <source_model>Magento\Payment\Model\Config\Source\Allspecificcountries</source_model>
-                </field>
-                <field id="specificcountry" translate="label" type="multiselect" sortOrder="51" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Payment from Specific Countries</label>
-                    <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
-                </field>
-                <field id="min_order_total" translate="label" type="text" sortOrder="98" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Minimum Order Total</label>
-                </field>
-                <field id="max_order_total" translate="label" type="text" sortOrder="99" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Maximum Order Total</label>
-                    <comment>Leave empty to disable limit</comment>
+                <field id="payment_action" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Payment Action</label>
+                    <source_model>Aligent\Pinpay\Model\Source\PaymentAction</source_model>
                 </field>
                 <field id="description_prefix" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Description Prefix</label>

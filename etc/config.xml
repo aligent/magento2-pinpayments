@@ -4,26 +4,13 @@
     <default>
         <payment>
             <pinpay>
-                <model>Aligent\Pinpay\Model\Payment</model>
                 <title>Credit Card (Pin Payments)</title>
                 <payment_action>authorize</payment_action>
+                <production_url>https://api.pin.net.au/1</production_url>
+                <testing_url>https://test-api.pin.net.au/1</testing_url>
                 <active>0</active>
-                <is_gateway>1</is_gateway>
-                <can_use_checkout>1</can_use_checkout>
-                <can_authorize>1</can_authorize>
-                <can_capture>1</can_capture>
-                <can_use_internal>1</can_use_internal>
-                <can_refund>1</can_refund>
-                <can_void>1</can_void>
-                <can_cancel>1</can_cancel>
-                <cctypes>AE,VI,MC</cctypes>
-                <useccv>1</useccv>
                 <order_status>processing</order_status>
-                <environment>sandbox</environment>
-                <allowspecific>0</allowspecific>
-                <public_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
-                <private_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
-                <masked_fields>cvv,number</masked_fields>
+                <test_mode>1</test_mode>
             </pinpay>
         </payment>
     </default>
