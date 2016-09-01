@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <pinpay>
+                <model>Aligent\Pinpay\Model\Payment</model>
+                <title>Credit Card (Pin Payments)</title>
+                <payment_action>authorize</payment_action>
+                <active>0</active>
+                <is_gateway>1</is_gateway>
+                <can_use_checkout>1</can_use_checkout>
+                <can_authorize>1</can_authorize>
+                <can_capture>1</can_capture>
+                <can_use_internal>1</can_use_internal>
+                <can_refund>1</can_refund>
+                <can_void>1</can_void>
+                <can_cancel>1</can_cancel>
+                <cctypes>AE,VI,MC</cctypes>
+                <useccv>1</useccv>
+                <order_status>processing</order_status>
+                <environment>sandbox</environment>
+                <allowspecific>0</allowspecific>
+                <public_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <private_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <masked_fields>cvv,number</masked_fields>
+            </pinpay>
+        </payment>
+    </default>
+</config>
