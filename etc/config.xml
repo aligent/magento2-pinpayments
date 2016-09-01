@@ -4,6 +4,7 @@
     <default>
         <payment>
             <pinpay>
+                <model>Aligent\Pinpay\Model\Payment</model>
                 <title>Credit Card (Pin Payments)</title>
                 <payment_action>authorize</payment_action>
                 <production_url>https://api.pin.net.au/1</production_url>
