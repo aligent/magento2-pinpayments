@@ -334,7 +334,7 @@ class Payment implements MethodInterface
      */
     public function isAvailable(CartInterface $quote = null)
     {
-        // TODO: Implement isAvailable() method.
+        return true;
     }
 
     /**
