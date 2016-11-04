@@ -18,7 +18,7 @@
                                                             <!-- merge payment method renders here -->
                                                             <item name="children" xsi:type="array">
                                                                 <item name="pin-payments" xsi:type="array">
-                                                                    <item name="component" xsi:type="string">Aligent_Pinpay/js/view/payment/pinpay_hosted</item>
+                                                                    <item name="component" xsi:type="string">Aligent_Pinpay/js/view/payment/pinpay</item>
                                                                     <item name="methods" xsi:type="array">
                                                                         <item name="pinpay" xsi:type="array">
                                                                             <item name="isBillingAddressRequired" xsi:type="boolean">true</item>

@@ -17,28 +17,13 @@
             <!-- ko template: getTemplate() --><!-- /ko -->
             <!--/ko-->
         </div>
-        <iframe width="0"
-                height="0"
-                data-bind="src: getSource(), attr: {id: getCode() + '-transparent-iframe', 'data-container': getCode() + '-transparent-iframe'}"
+        <iframe data-bind="attr: {src: getSource(),id: getCode() + '-transparent-iframe', 'data-container': getCode() + '-transparent-iframe'}, afterRender: initIframe"
                 allowtransparency="true"
                 frameborder="0"
                 name="iframeTransparent"
                 class="payment-method-iframe">
-
         </iframe>
-        <form class="form" id="co-transparent-form" action="#" method="post" data-bind="mageInit: {
-            'transparent':{
-                'context': context(),
-                'controller': getControllerName(),
-                'gateway': getCode(),
-                'orderSaveUrl':getPlaceOrderUrl(),
-                'cgiUrl': getCgiUrl(),
-                'dateDelim': getDateDelim(),
-                'cardFieldsMap': getCardFieldsMap(),
-                'nativeAction': getSaveOrderUrl()
-            }, 'validation':[]}">
-            <!-- ko template: 'Magento_Payment/payment/cc-form' --><!-- /ko -->
-        </form>
+        <input type="hidden" name="pinpay-token" id="pinpay_card_token">
         <div class="checkout-agreements-block">
             <!-- ko foreach: $parent.getRegion('before-place-order') -->
             <!-- ko template: getTemplate() --><!-- /ko -->

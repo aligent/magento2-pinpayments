@@ -12,7 +12,7 @@ class Payment implements MethodInterface
 {
 
     const PAYMENT_CODE = 'pinpay';
-    const CONFIG_PATH_TITLE = 'payment/pinpay/title';
+    const CONFIG_PATH_PREFIX = 'payment/pinpay/';
 
     /**
      * @var ScopeConfigInterface
@@ -33,11 +33,12 @@ class Payment implements MethodInterface
     }
 
     /**
+     * Note: Intentionally not implemented due to deprecation in favour of UiComponent
      * @inheritDoc
      */
     public function getFormBlockType()
     {
-        // TODO: Implement getFormBlockType() method.
+        return "";
     }
 
     /**
@@ -45,7 +46,7 @@ class Payment implements MethodInterface
      */
     public function getTitle()
     {
-        return $this->_config->getValue(self::CONFIG_PATH_TITLE);
+        return $this->_config->getValue(self::CONFIG_PATH_PREFIX . 'title');
     }
 
     /**
@@ -134,6 +135,7 @@ class Payment implements MethodInterface
     public function canUseInternal()
     {
         // TODO: Implement canUseInternal() method.
+        return true;
     }
 
     /**
@@ -142,6 +144,7 @@ class Payment implements MethodInterface
     public function canUseCheckout()
     {
         // TODO: Implement canUseCheckout() method.
+        return true;
     }
 
     /**
@@ -199,6 +202,7 @@ class Payment implements MethodInterface
     public function canUseForCountry($country)
     {
         // TODO: Implement canUseForCountry() method.
+        return true;
     }
 
     /**
@@ -206,7 +210,8 @@ class Payment implements MethodInterface
      */
     public function canUseForCurrency($currencyCode)
     {
-        // TODO: Implement canUseForCurrency() method.
+        //TODO: Implement required rules
+        return true;
     }
 
     /**
@@ -318,7 +323,11 @@ class Payment implements MethodInterface
      */
     public function getConfigData($field, $storeId = null)
     {
-        // TODO: Implement getConfigData() method.
+        $configKey = self::CONFIG_PATH_PREFIX . $field;
+        if($storeId){
+            return $this->_config->getValue($configKey, 'stores', $storeId);
+        }
+        return $this->_config->getValue($configKey);
     }
 
     /**
@@ -334,6 +343,7 @@ class Payment implements MethodInterface
      */
     public function isAvailable(CartInterface $quote = null)
     {
+        //TODO
         return true;
     }
 
@@ -342,7 +352,8 @@ class Payment implements MethodInterface
      */
     public function isActive($storeId = null)
     {
-        // TODO: Implement isActive() method.
+        //TODO
+        return true;
     }
 
     /**

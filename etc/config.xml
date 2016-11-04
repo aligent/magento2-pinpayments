@@ -9,7 +9,8 @@
                 <payment_action>authorize</payment_action>
                 <production_url>https://api.pin.net.au/1</production_url>
                 <testing_url>https://test-api.pin.net.au/1</testing_url>
-                <active>0</active>
+                <active>1</active>
+                <min_order_total>0</min_order_total>
                 <order_status>processing</order_status>
                 <test_mode>1</test_mode>
             </pinpay>

@@ -13,7 +13,7 @@ define(
         rendererList.push(
             {
                 type: 'pinpay',
-                component: 'Aligent_Pinpay/js/view/payment/method-renderer/pinpay_hosted'
+                component: 'Aligent_Pinpay/js/view/payment/method-renderer/pinpay-hosted'
             }
         );
         /** Add view logic here if needed */
