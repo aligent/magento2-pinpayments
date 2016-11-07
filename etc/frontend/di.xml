@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <virtualType name="PinpayIframeConfigProvider" type="Aligent\Pinpay\Model\ConfigProvider">
+    <virtualType name="PinpayConfigProvider" type="Aligent\Pinpay\Model\ConfigProvider">
         <arguments>
             <argument name="methodCode" xsi:type="const">Aligent\Pinpay\Model\Payment::PAYMENT_CODE</argument>
         </arguments>
     </virtualType>
-    <type name="Magento\Checkout\Modеl\CompositeConfigProvider">
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
         <arguments>
             <argument name="configProviders" xsi:type="array">
-                <item name="pinpay_iframe_config_provider" xsi:type="object">PinpayIframeConfigProvider</item>
+                <item name="pinpay_config_provider" xsi:type="object">PinpayConfigProvider</item>
             </argument>
         </arguments>
     </type>

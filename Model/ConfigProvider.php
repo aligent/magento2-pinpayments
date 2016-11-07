@@ -47,19 +47,20 @@ class ConfigProvider implements \Magento\Checkout\Model\ConfigProviderInterface
     ) {
         $this->request = $request;
         $this->urlBuilder = $urlBuilder;
-        $this->methodCode = $methodCode;
         $this->method = $paymentHelper->getMethodInstance($methodCode);
+        $this->methodCode = $methodCode;
     }
 
     public function getConfig()
     {
         return [
             'payment' => [
-                'iframe' => [
-                    'placeOrderUrl' => [$this->methodCode => $this->getPlaceOrderUrl()],
-                    'saveOrderUrl' => [$this->methodCode => $this->getSaveOrderUrl()],
-                    'source' => [$this->methodCode => $this->getSource()],
-                    'apiKey' => [$this->methodCode => $this->getApiKey()]
+                'pinpay' => [
+                    'placeOrderUrl' => $this->getPlaceOrderUrl(),
+                    'saveOrderUrl' => $this->getSaveOrderUrl(),
+                    'source' => $this->getSource(),
+                    'apiKey' => $this->getApiKey(),
+                    'mode' => $this->getMode()
                 ]
             ]
         ];
