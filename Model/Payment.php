@@ -3,25 +3,51 @@
 namespace Aligent\Pinpay\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\HTTP\ZendClientFactory;
 use Magento\Payment\Model\MethodInterface;
 use Magento\Payment\Model\InfoInterface;
 use Magento\Framework\DataObject;
 use Magento\Quote\Api\Data\CartInterface;
+use Magento\Payment\Model\Method\Logger;
+use Magento\Quote\Api\Data\PaymentInterface;
 
 class Payment implements MethodInterface
 {
 
     const PAYMENT_CODE = 'pinpay';
     const CONFIG_PATH_PREFIX = 'payment/pinpay/';
+    const TEST_GATEWAY_URL = 'https://test-api.pin.net.au/1/';
+    const GATEWAY_URL = 'https://api.pin.net.au/1/';
 
     /**
      * @var ScopeConfigInterface
      */
     protected $_config;
 
-    public function __construct(ScopeConfigInterface $scopeConfigInterface)
+    protected $_canCapture = true;
+
+    protected $infoInstance;
+
+    /**
+     * @var \Magento\Framework\HTTP\ZendClientFactory
+     */
+    protected $_httpClientFactory;
+
+    /**
+     * @var Logger
+     */
+    protected $_logger;
+
+    public function __construct(
+        ScopeConfigInterface $scopeConfigInterface,
+        Logger $logger,
+        ZendClientFactory $httpClientFactory
+    )
     {
         $this->_config = $scopeConfigInterface;
+        $this->_logger = $logger;
+        $this->_httpClientFactory = $httpClientFactory;
     }
 
     /**
@@ -86,7 +112,7 @@ class Payment implements MethodInterface
      */
     public function canCapture()
     {
-        // TODO: Implement canCapture() method.
+        return $this->_canCapture;
     }
 
     /**
@@ -193,7 +219,7 @@ class Payment implements MethodInterface
      */
     public function isInitializeNeeded()
     {
-        // TODO: Implement isInitializeNeeded() method.
+        return false;
     }
 
     /**
@@ -223,27 +249,26 @@ class Payment implements MethodInterface
     }
 
     /**
-     * @inheritDoc
+     * @inheritdoc
      */
     public function getInfoInstance()
     {
-        // TODO: Implement getInfoInstance() method.
+        return $this->infoInstance;
     }
 
     /**
-     * @inheritDoc
+     * @inheritdoc
      */
     public function setInfoInstance(InfoInterface $info)
     {
-        // TODO: Implement setInfoInstance() method.
+        $this->infoInstance = $info;
     }
-
     /**
      * @inheritDoc
      */
     public function validate()
     {
-        // TODO: Implement validate() method.
+        // TODO: Implement validate()
     }
 
     /**
@@ -252,6 +277,7 @@ class Payment implements MethodInterface
     public function order(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
         // TODO: Implement order() method.
+        $x = $amount;
     }
 
     /**
@@ -267,7 +293,57 @@ class Payment implements MethodInterface
      */
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        // TODO: Implement capture() method.
+        if ($amount <= 0) {
+            $this->_logger->addError('Expected amount for transaction is zero or below');
+            throw new LocalizedException(__("Invalid payment amount."));
+        }
+
+        $order = $payment->getOrder();
+        $billing = $order->getBillingAddress();
+
+        $data = $this->_buildRequestData($order, $payment, $amount);
+
+        $endpoint = $this->getPaymentUrl() . 'charges';
+
+        $client = $this->_httpClientFactory->create();
+        $client->setUri($endpoint);
+        foreach($data as $reqParam => $reqValue){
+            $client->setParameterPost($reqParam, $reqValue);
+        }
+
+        $client->setParameterPost('capture', 'true');
+
+        $client->setMethod($client::POST);
+        $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
+        $client->setAuth($this->getConfigData('secret_key'),'');
+
+        $response = null;
+        try {
+            $response = $client->request();
+            $resultContent = json_decode($response->getBody());
+            $payment->setCcTransId('' . $resultContent->response->token);
+            $payment->setTransactionId('' . $resultContent->response->token);
+        } catch (\Exception $e) {
+            $this->_logger->debug("Error capturing funds: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * @param $order \Magento\Sales\Model\Order
+     * @param $payment \Magento\Payment\Model\InfoInterface
+     * @param $amount float
+     * @return array
+     */
+    protected function _buildRequestData($order, $payment, $amount)
+    {
+        return [
+            'email' => $order->getCustomerEmail(),
+            'amount' => $amount * 100,
+            'description' => 'Order: #' . $order->getRealOrderId(),
+            'card_token' => $payment->getAdditionalInformation('card_token'),//TODO get card_token from additional information
+            'ip_address' => $order->getRemoteIp(),
+            'currency' => $order->getBaseCurrencyCode()
+        ];
     }
 
     /**
@@ -335,7 +411,15 @@ class Payment implements MethodInterface
      */
     public function assignData(DataObject $data)
     {
-        // TODO: Implement assignData() method.
+        $additionalData = $data->getData(PaymentInterface::KEY_ADDITIONAL_DATA);
+        if (!is_object($additionalData)) {
+            $additionalData = new DataObject($additionalData ?: []);
+        }
+
+        $info = $this->getInfoInstance();
+        $info->setAdditionalInformation('card_token', $additionalData->getCardToken());
+
+        return $this;
     }
 
     /**
@@ -369,7 +453,18 @@ class Payment implements MethodInterface
      */
     public function getConfigPaymentAction()
     {
-        // TODO: Implement getConfigPaymentAction() method.
+        return \Magento\Payment\Model\Method\AbstractMethod::ACTION_AUTHORIZE_CAPTURE;//TODO: config
+    }
+
+    /**
+     * Get the URL for sending payment API requests based on whether test mode is configured.
+     * @param int $storeId
+     * @return string
+     */
+    public function getPaymentUrl($storeId = 0)
+    {
+        $isTest = $this->getConfigData('test_mode', $storeId);
+        return $isTest ? self::TEST_GATEWAY_URL : self::GATEWAY_URL;
     }
 
 }
