@@ -9,7 +9,7 @@ use Magento\Payment\Model\MethodInterface;
 use Magento\Payment\Model\InfoInterface;
 use Magento\Framework\DataObject;
 use Magento\Quote\Api\Data\CartInterface;
-use Magento\Payment\Model\Method\Logger;
+use Psr\Log\LoggerInterface;
 use Magento\Quote\Api\Data\PaymentInterface;
 
 class Payment implements MethodInterface
@@ -35,13 +35,13 @@ class Payment implements MethodInterface
     protected $_httpClientFactory;
 
     /**
-     * @var Logger
+     * @var LoggerInterface
      */
     protected $_logger;
 
     public function __construct(
         ScopeConfigInterface $scopeConfigInterface,
-        Logger $logger,
+        LoggerInterface $logger,
         ZendClientFactory $httpClientFactory
     )
     {
@@ -324,7 +324,7 @@ class Payment implements MethodInterface
             $payment->setCcTransId('' . $resultContent->response->token);
             $payment->setTransactionId('' . $resultContent->response->token);
         } catch (\Exception $e) {
-            $this->_logger->debug("Error capturing funds: " . $e->getMessage());
+            $this->_logger->error("Error capturing funds: " . $e->getMessage());
         }
     }
 

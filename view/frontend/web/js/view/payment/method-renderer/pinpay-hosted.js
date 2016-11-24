@@ -25,12 +25,6 @@ define(
                 this._super();
                 this.checkoutData = checkoutData;
                 this.token_element_selector = "#pinpay_card_token";
-                this.setValidateHandler(function(){return true;});//todo
-                this.setPlaceOrderHandler($.proxy(function(){
-                    if(this.iframe.length > 0) {
-                        this.iframe[0].contentWindow.postMessage('set-token', "*");
-                    }
-                }, this));
             },
             /**
              * @param {Object} handler
@@ -38,12 +32,20 @@ define(
             setPlaceOrderHandler: function (handler) {
                 this.placeOrderHandler = handler;
             },
+            /**
+             * Invoked afterRender from inside the template
+             *
+             * The IFrame may be initialized multiple times within the same window context if the
+             * user navigates back, so we need to namespace our events and clear them before attaching the
+             * event listener to avoid duplicate place order events being fired.
+             */
             initIframe: function() {
+                $(window).off('message.pinpay');
                 this.iframe = $("#pinpay-transparent-iframe");
                 if(this.iframe.length > 0){
                     this.iframe.on("load", $.proxy(this.handleIframeLoad, this));
                 }
-                $(window).on('message', $.proxy(this.handleMessage, this));
+                $(window).on('message.pinpay', $.proxy(this.handleMessage, this));
             },
             handleIframeLoad: function() {
                 this.iframe[0].contentWindow.postMessage(JSON.stringify(this.getConfig()), "*");
@@ -54,29 +56,41 @@ define(
                 if(msgEvent.origin === 'https://cdn.pin.net.au')
                 {
                     this.card_token = msgEvent.data;
-                    placeOrderAction(this.getData(), this.messageContainer);
-                    this.isPlaceOrderActionAllowed(true);
-                    fullScreenLoader.stopLoader(true);
+                    //this.isPlaceOrderActionAllowed(true);
+                    this._placeOrder();
                 }
             },
+            getCardToken: function() {
+                this.iframe[0].contentWindow.postMessage('set-token','*');
+            },
+
+            /**
+             * @override
+             */
+            placeOrder: function () {
+                this.getCardToken();
+            },
+            _placeOrder: function() {
+                fullScreenLoader.startLoader();
+
+                //this.isPlaceOrderActionAllowed(false);
+
+                $.when(
+                    placeOrderAction(
+                        this.getData(),
+                        this.messageContainer
+                    )
+                ).done(this.done.bind(this))
+                    .fail(this.fail.bind(this));
+
+                this.initTimeoutHandler();
+            },
+
             /**
              * @param {Object} handler
              */
             setValidateHandler: function (handler) {
                 this.validateHandler = handler;
-            },
-            /**
-             * @override
-             */
-            placeOrder: function () {
-                var self = this;
-
-                if (this.validateHandler()) {
-                    this.isPlaceOrderActionAllowed(false);
-                    fullScreenLoader.startLoader();
-                    self.placeOrderHandler();//Trigger pinpay request inside iframe
-                    redirectOnSuccessAction.execute();
-                }
             },
 
             /**
@@ -117,6 +131,14 @@ define(
              */
             isActive: function () {
                 return true;
+            },
+
+            done: function(){
+                redirectOnSuccessAction.execute();
+            },
+
+            fail: function() {
+                fullScreenLoader.stopLoader();
             },
 
             getSource: function() {
