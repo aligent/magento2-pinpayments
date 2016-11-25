@@ -43,11 +43,11 @@ define(
                 $(window).off('message.pinpay');
                 this.iframe = $("#pinpay-transparent-iframe");
                 if(this.iframe.length > 0){
-                    this.iframe.on("load", $.proxy(this.handleIframeLoad, this));
+                    this.iframe.on("load", $.proxy(this.configureFrame, this));
                 }
                 $(window).on('message.pinpay', $.proxy(this.handleMessage, this));
             },
-            handleIframeLoad: function() {
+            configureFrame: function() {
                 this.iframe[0].contentWindow.postMessage(JSON.stringify(this.getConfig()), "*");
             },
             handleMessage: function(msg) {
@@ -144,7 +144,7 @@ define(
             getSource: function() {
                 return window.checkoutConfig.payment.pinpay.source;
             },
-
+            //TODO: If the customer adds a billing address, should we re-configure the iframe using the billing address data instead?
             getConfig: function() {
                 var _addressData = this.checkoutData.getBillingAddressFromData();
                 if(typeof(_addressData) === 'undefined'){

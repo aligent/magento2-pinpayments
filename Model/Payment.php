@@ -9,9 +9,19 @@ use Magento\Payment\Model\MethodInterface;
 use Magento\Payment\Model\InfoInterface;
 use Magento\Framework\DataObject;
 use Magento\Quote\Api\Data\CartInterface;
+use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
 use Magento\Quote\Api\Data\PaymentInterface;
+use Aligent\Pinpay\Helper\Pinpay as PinHelper;
 
+/**
+ *
+ * PIN Payments implementation which supports authorization and capture
+ * of payments through a card token retrieved via the hosted fields service.
+ *
+ * Class Payment
+ * @package Aligent\Pinpay\Model
+ */
 class Payment implements MethodInterface
 {
 
@@ -27,7 +37,15 @@ class Payment implements MethodInterface
 
     protected $_canCapture = true;
 
+    /**
+     * @var InfoInterface
+     */
     protected $infoInstance;
+
+    /**
+     * @var PinHelper
+     */
+    protected $_pinHelper;
 
     /**
      * @var \Magento\Framework\HTTP\ZendClientFactory
@@ -39,15 +57,23 @@ class Payment implements MethodInterface
      */
     protected $_logger;
 
+    /**
+     * Payment constructor.
+     * @param ScopeConfigInterface $scopeConfigInterface
+     * @param LoggerInterface $logger
+     * @param ZendClientFactory $httpClientFactory
+     * @param PinHelper $pinHelper
+     */
     public function __construct(
         ScopeConfigInterface $scopeConfigInterface,
         LoggerInterface $logger,
-        ZendClientFactory $httpClientFactory
-    )
-    {
+        ZendClientFactory $httpClientFactory,
+        PinHelper $pinHelper
+    ) {
         $this->_config = $scopeConfigInterface;
         $this->_logger = $logger;
         $this->_httpClientFactory = $httpClientFactory;
+        $this->_pinHelper = $pinHelper;
     }
 
     /**
@@ -96,7 +122,7 @@ class Payment implements MethodInterface
      */
     public function canOrder()
     {
-        // TODO: Implement canOrder() method.
+        return false;
     }
 
     /**
@@ -104,7 +130,7 @@ class Payment implements MethodInterface
      */
     public function canAuthorize()
     {
-        // TODO: Implement canAuthorize() method.
+        return true;
     }
 
     /**
@@ -120,7 +146,7 @@ class Payment implements MethodInterface
      */
     public function canCapturePartial()
     {
-        // TODO: Implement canCapturePartial() method.
+        return false;
     }
 
     /**
@@ -128,7 +154,7 @@ class Payment implements MethodInterface
      */
     public function canCaptureOnce()
     {
-        // TODO: Implement canCaptureOnce() method.
+        return true;
     }
 
     /**
@@ -137,6 +163,7 @@ class Payment implements MethodInterface
     public function canRefund()
     {
         // TODO: Implement canRefund() method.
+        return false;
     }
 
     /**
@@ -145,6 +172,7 @@ class Payment implements MethodInterface
     public function canRefundPartialPerInvoice()
     {
         // TODO: Implement canRefundPartialPerInvoice() method.
+        return false;
     }
 
     /**
@@ -153,6 +181,7 @@ class Payment implements MethodInterface
     public function canVoid()
     {
         // TODO: Implement canVoid() method.
+        return false;
     }
 
     /**
@@ -160,7 +189,6 @@ class Payment implements MethodInterface
      */
     public function canUseInternal()
     {
-        // TODO: Implement canUseInternal() method.
         return true;
     }
 
@@ -169,7 +197,6 @@ class Payment implements MethodInterface
      */
     public function canUseCheckout()
     {
-        // TODO: Implement canUseCheckout() method.
         return true;
     }
 
@@ -245,7 +272,7 @@ class Payment implements MethodInterface
      */
     public function getInfoBlockType()
     {
-        // TODO: Implement getInfoBlockType() method.
+        return "Magento\\Payment\\Block\\ConfigurableInfo";
     }
 
     /**
@@ -263,6 +290,7 @@ class Payment implements MethodInterface
     {
         $this->infoInstance = $info;
     }
+
     /**
      * @inheritDoc
      */
@@ -276,8 +304,7 @@ class Payment implements MethodInterface
      */
     public function order(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        // TODO: Implement order() method.
-        $x = $amount;
+        return $this;
     }
 
     /**
@@ -285,7 +312,48 @@ class Payment implements MethodInterface
      */
     public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        // TODO: Implement authorize() method.
+        if ($amount <= 0) {
+            $this->_logger->addError('Expected amount for transaction is zero or below');
+            throw new LocalizedException(__("Invalid payment amount."));
+        }
+
+        $client = $this->_httpClientFactory->create();
+
+        $endpoint = $this->getPaymentUrl() . 'charges';
+        $method = $client::POST;
+
+        /**
+         * @var $order \Magento\Sales\Model\Order
+         */
+        $order = $payment->getOrder();
+
+        $data = $this->_buildAuthRequest($order, $payment, $amount, false);
+
+        $client->setUri($endpoint);
+        $client->setMethod($method);
+
+        foreach ($data as $reqParam => $reqValue) {
+            $client->setParameterPost($reqParam, $reqValue);
+        }
+
+        $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
+        $client->setAuth($this->getConfigData('secret_key'), $order->getStoreId());
+
+        $response = null;
+        try {
+            $response = $client->request();
+            $resultContent = json_decode($response->getBody());
+            if ($resultContent->response->success) {
+                $payment->setCcTransId('' . $resultContent->response->token);
+                $payment->setTransactionId('' . $resultContent->response->token);
+            } else {
+                //Error handling.
+            }
+        } catch (\Exception $e) {
+            $this->_logger->error("Payment Error: " . $e->getMessage());
+        }
+
+        return $this;
     }
 
     /**
@@ -298,33 +366,60 @@ class Payment implements MethodInterface
             throw new LocalizedException(__("Invalid payment amount."));
         }
 
-        $order = $payment->getOrder();
-        $billing = $order->getBillingAddress();
-
-        $data = $this->_buildRequestData($order, $payment, $amount);
+        $client = $this->_httpClientFactory->create();
 
         $endpoint = $this->getPaymentUrl() . 'charges';
+        $method = $client::POST;
 
-        $client = $this->_httpClientFactory->create();
+        //Check for an existing auth token
+        if ($payment->getCcTransId()) {
+            $endpoint .= '/' . $payment->getCcTransId() . '/capture';
+            $method = $client::PUT;
+        }
+
+        /**
+         * @var $order \Magento\Sales\Model\Order
+         */
+        $order = $payment->getOrder();
+
+        //Only require amount value if we're just doing a capture.
+        if ($payment->getCcTransId()) {
+            $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount)];
+        } else {
+            $data = $this->_buildAuthRequest($order, $payment, $amount, true);
+        }
+
         $client->setUri($endpoint);
-        foreach($data as $reqParam => $reqValue){
+        $client->setMethod($method);
+
+        foreach ($data as $reqParam => $reqValue) {
             $client->setParameterPost($reqParam, $reqValue);
         }
 
-        $client->setParameterPost('capture', 'true');
-
-        $client->setMethod($client::POST);
         $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
-        $client->setAuth($this->getConfigData('secret_key'),'');
+        $client->setAuth($this->getConfigData('secret_key'), $order->getStoreId());
 
         $response = null;
         try {
             $response = $client->request();
             $resultContent = json_decode($response->getBody());
-            $payment->setCcTransId('' . $resultContent->response->token);
-            $payment->setTransactionId('' . $resultContent->response->token);
+            if (isset($resultContent->response)
+                && isset($resultContent->response->success)
+                && $resultContent->response->success
+            ) {
+                $payment->setCcTransId('' . $resultContent->response->token);
+                $payment->setTransactionId('' . $resultContent->response->token);
+            } elseif (isset($resultContent->error)) {
+                if($resultContent->error === "suspected_fraud"){
+                    $order->setState(\Magento\Sales\Model\Order::STATE_PAYMENT_REVIEW);
+                    $order->setStatus(\Magento\Sales\Model\Order::STATE_PAYMENT_REVIEW);
+                    return;
+                }
+                throw new LocalizedException(__($resultContent->error));
+            }
         } catch (\Exception $e) {
-            $this->_logger->error("Error capturing funds: " . $e->getMessage());
+            $this->_logger->error("Payment Error: " . $e->getMessage());
+            throw new LocalizedException(__($e->getMessage()));
         }
     }
 
@@ -332,17 +427,19 @@ class Payment implements MethodInterface
      * @param $order \Magento\Sales\Model\Order
      * @param $payment \Magento\Payment\Model\InfoInterface
      * @param $amount float
+     * @param $capture boolean
      * @return array
      */
-    protected function _buildRequestData($order, $payment, $amount)
+    protected function _buildAuthRequest($order, $payment, $amount, $capture = true)
     {
         return [
             'email' => $order->getCustomerEmail(),
-            'amount' => $amount * 100,
+            'amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount),
             'description' => 'Order: #' . $order->getRealOrderId(),
-            'card_token' => $payment->getAdditionalInformation('card_token'),//TODO get card_token from additional information
+            'card_token' => $payment->getAdditionalInformation('card_token'),
             'ip_address' => $order->getRemoteIp(),
-            'currency' => $order->getBaseCurrencyCode()
+            'currency' => $order->getBaseCurrencyCode(),
+            'capture' => $capture
         ];
     }
 
@@ -352,6 +449,7 @@ class Payment implements MethodInterface
     public function refund(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
         // TODO: Implement refund() method.
+        return $this;
     }
 
     /**
@@ -359,7 +457,7 @@ class Payment implements MethodInterface
      */
     public function cancel(\Magento\Payment\Model\InfoInterface $payment)
     {
-        // TODO: Implement cancel() method.
+        return $this;
     }
 
     /**
@@ -368,6 +466,7 @@ class Payment implements MethodInterface
     public function void(\Magento\Payment\Model\InfoInterface $payment)
     {
         // TODO: Implement void() method.
+        return $this;
     }
 
     /**
@@ -376,6 +475,7 @@ class Payment implements MethodInterface
     public function canReviewPayment()
     {
         // TODO: Implement canReviewPayment() method.
+        return true;
     }
 
     /**
@@ -400,8 +500,8 @@ class Payment implements MethodInterface
     public function getConfigData($field, $storeId = null)
     {
         $configKey = self::CONFIG_PATH_PREFIX . $field;
-        if($storeId){
-            return $this->_config->getValue($configKey, 'stores', $storeId);
+        if ($storeId) {
+            return $this->_config->getValue($configKey, ScopeInterface::SCOPE_STORES, $storeId);
         }
         return $this->_config->getValue($configKey);
     }
@@ -427,8 +527,7 @@ class Payment implements MethodInterface
      */
     public function isAvailable(CartInterface $quote = null)
     {
-        //TODO
-        return true;
+        return $this->isActive();
     }
 
     /**
@@ -436,8 +535,7 @@ class Payment implements MethodInterface
      */
     public function isActive($storeId = null)
     {
-        //TODO
-        return true;
+        return $this->getConfigData('active');
     }
 
     /**
@@ -453,7 +551,7 @@ class Payment implements MethodInterface
      */
     public function getConfigPaymentAction()
     {
-        return \Magento\Payment\Model\Method\AbstractMethod::ACTION_AUTHORIZE_CAPTURE;//TODO: config
+        return $this->getConfigData('payment_action');
     }
 
     /**

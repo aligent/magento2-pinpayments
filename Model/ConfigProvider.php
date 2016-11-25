@@ -56,8 +56,6 @@ class ConfigProvider implements \Magento\Checkout\Model\ConfigProviderInterface
         return [
             'payment' => [
                 'pinpay' => [
-                    'placeOrderUrl' => $this->getPlaceOrderUrl(),
-                    'saveOrderUrl' => $this->getSaveOrderUrl(),
                     'source' => $this->getSource(),
                     'apiKey' => $this->getApiKey(),
                     'mode' => $this->getMode()
@@ -79,15 +77,5 @@ class ConfigProvider implements \Magento\Checkout\Model\ConfigProviderInterface
     public function getSource()
     {
         return "https://cdn.pin.net.au/hosted_fields/b4/hosted-fields.html";
-    }
-
-    public function getPlaceOrderUrl()
-    {
-
-    }
-
-    public function getSaveOrderUrl()
-    {
-        return $this->urlBuilder->getUrl('checkout/onepage/saveOrder', ['_secure' => $this->request->isSecure()]);
     }
 }
