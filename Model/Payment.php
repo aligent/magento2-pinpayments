@@ -57,6 +57,7 @@ class Payment implements MethodInterface
      */
     protected $_logger;
 
+
     /**
      * Payment constructor.
      * @param ScopeConfigInterface $scopeConfigInterface
@@ -342,12 +343,17 @@ class Payment implements MethodInterface
         $response = null;
         try {
             $response = $client->request();
-            $resultContent = json_decode($response->getBody());
-            if ($resultContent->response->success) {
-                $payment->setCcTransId('' . $resultContent->response->token);
-                $payment->setTransactionId('' . $resultContent->response->token);
-            } else {
-                //Error handling.
+            /**
+             * @var $result \Aligent\Pinpay\Model\Result
+             */
+            $result = new Result($response);
+            $error = $result->getError();
+
+            if ($result->isSuccess()) {
+                $payment->setCcTransId($result->getToken());
+                $payment->setTransactionId($result->getToken());
+            } elseif($error) {
+                throw new LocalizedException(__($result->getErrorDescription()));
             }
         } catch (\Exception $e) {
             $this->_logger->error("Payment Error: " . $e->getMessage());
@@ -402,20 +408,17 @@ class Payment implements MethodInterface
         $response = null;
         try {
             $response = $client->request();
-            $resultContent = json_decode($response->getBody());
-            if (isset($resultContent->response)
-                && isset($resultContent->response->success)
-                && $resultContent->response->success
-            ) {
-                $payment->setCcTransId('' . $resultContent->response->token);
-                $payment->setTransactionId('' . $resultContent->response->token);
-            } elseif (isset($resultContent->error)) {
-                if($resultContent->error === "suspected_fraud"){
-                    $order->setState(\Magento\Sales\Model\Order::STATE_PAYMENT_REVIEW);
-                    $order->setStatus(\Magento\Sales\Model\Order::STATE_PAYMENT_REVIEW);
-                    return;
-                }
-                throw new LocalizedException(__($resultContent->error));
+            /**
+             * @var $result \Aligent\Pinpay\Model\Result
+             */
+            $result = new Result($response);
+            $error = $result->getError();
+            if ($result->isSuccess())
+            {
+                $payment->setCcTransId($result->getToken());
+                $payment->setTransactionId($result->getToken());
+            } elseif ($error) {
+                throw new LocalizedException(__($result->getErrorDescription()));
             }
         } catch (\Exception $e) {
             $this->_logger->error("Payment Error: " . $e->getMessage());
