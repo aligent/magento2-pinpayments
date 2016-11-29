@@ -50,13 +50,6 @@ define(
                     this.iframe.on("load", $.proxy(this.configureFrame, this));
                 }
                 $(window).on('message.pinpay', $.proxy(this.handleMessage, this));
-                this.quote.billingAddress.subscribe($.proxy(this.handleBillingAddressChange, this));
-            },
-            handleBillingAddressChange: function(newAddress) {
-                if(newAddress !== null){
-                    this.billing_address = newAddress;
-                    this.configureFrame();
-                }
             },
             configureFrame: function() {
                 if(typeof(this.iframe) !== "undefined" && this.iframe.length > 0)
@@ -157,7 +150,7 @@ define(
                 return window.checkoutConfig.payment.pinpay.source;
             },
             getConfig: function() {
-                var _addressData = this.billing_address;
+                var _addressData = this.quote.billingAddress();
                 if(_addressData === null){
                     _addressData = this.quote.shippingAddress();
                 }
@@ -172,7 +165,7 @@ define(
                             address_city: _addressData.city,
                             address_state: _addressData.region,
                             address_postcode: _addressData.postcode,
-                            address_country: _addressData.country_id
+                            address_country: _addressData.countryId
                         }
                     }
                 };
