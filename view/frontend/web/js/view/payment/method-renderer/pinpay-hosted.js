@@ -5,9 +5,10 @@ define(
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Checkout/js/action/place-order',
         'Magento_Checkout/js/checkout-data',
-        'Magento_Checkout/js/action/redirect-on-success'
+        'Magento_Checkout/js/action/redirect-on-success',
+        'Magento_Checkout/js/model/quote'
     ],
-    function ($, Component, fullScreenLoader, placeOrderAction, checkoutData, redirectOnSuccessAction) {
+    function ($, Component, fullScreenLoader, placeOrderAction, checkoutData, redirectOnSuccessAction, quote) {
         'use strict';
 
         return Component.extend({
@@ -20,11 +21,14 @@ define(
             validateHandler: null,
             iframe: null,
             token_element_selector: null,
+            billing_address: null,
 
             initialize: function () {
                 this._super();
                 this.checkoutData = checkoutData;
+                this.quote = quote;
                 this.token_element_selector = "#pinpay_card_token";
+
             },
             /**
              * @param {Object} handler
@@ -46,9 +50,19 @@ define(
                     this.iframe.on("load", $.proxy(this.configureFrame, this));
                 }
                 $(window).on('message.pinpay', $.proxy(this.handleMessage, this));
+                this.quote.billingAddress.subscribe($.proxy(this.handleBillingAddressChange, this));
+            },
+            handleBillingAddressChange: function(newAddress) {
+                if(newAddress !== null){
+                    this.billing_address = newAddress;
+                    this.configureFrame();
+                }
             },
             configureFrame: function() {
-                this.iframe[0].contentWindow.postMessage(JSON.stringify(this.getConfig()), "*");
+                if(typeof(this.iframe) !== "undefined" && this.iframe.length > 0)
+                {
+                    this.iframe[0].contentWindow.postMessage(JSON.stringify(this.getConfig()), "*");
+                }
             },
             handleMessage: function(msg) {
                 //Pull originalEvent from resulting jQuery wrapper
@@ -56,7 +70,6 @@ define(
                 if(msgEvent.origin === 'https://cdn.pin.net.au')
                 {
                     this.card_token = msgEvent.data;
-                    //this.isPlaceOrderActionAllowed(true);
                     this._placeOrder();
                 }
             },
@@ -68,12 +81,11 @@ define(
              * @override
              */
             placeOrder: function () {
+                this.configureFrame();//Set billing address
                 this.getCardToken();
             },
             _placeOrder: function() {
                 fullScreenLoader.startLoader();
-
-                //this.isPlaceOrderActionAllowed(false);
 
                 $.when(
                     placeOrderAction(
@@ -144,11 +156,10 @@ define(
             getSource: function() {
                 return window.checkoutConfig.payment.pinpay.source;
             },
-            //TODO: If the customer adds a billing address, should we re-configure the iframe using the billing address data instead?
             getConfig: function() {
-                var _addressData = this.checkoutData.getBillingAddressFromData();
-                if(typeof(_addressData) === 'undefined'){
-                    _addressData = this.checkoutData.getShippingAddressFromData();
+                var _addressData = this.billing_address;
+                if(_addressData === null){
+                    _addressData = this.quote.shippingAddress();
                 }
                 return {
                     config: {
