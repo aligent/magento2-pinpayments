@@ -1,0 +1,3 @@
+{
+  "suspected_fraud": "{\"error\": \"suspected_fraud\",\"error_description\": \"The transaction was flagged as possibly fraudulent and subsequently declined.\",\"charge_token\": \"ch_lfUYEBK14zotCTykezJkfg\"}"
+}
