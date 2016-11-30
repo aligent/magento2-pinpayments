@@ -48,6 +48,7 @@ class Result extends DataObject
      */
     public function isSuccess()
     {
+
         if (isset($this->_response->response) && isset($this->_response->response->success)) {
             return (boolean)$this->_response->response->success;
         }

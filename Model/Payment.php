@@ -231,7 +231,7 @@ class Payment implements MethodInterface
      */
     public function isGateway()
     {
-        // TODO: Implement isGateway() method.
+        return true;
     }
 
     /**
@@ -240,6 +240,7 @@ class Payment implements MethodInterface
     public function isOffline()
     {
         // TODO: Implement isOffline() method.
+        return false;
     }
 
     /**
@@ -314,7 +315,7 @@ class Payment implements MethodInterface
     public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
         if ($amount <= 0) {
-            $this->_logger->addError('Expected amount for transaction is zero or below');
+            $this->_logger->error('Expected amount for transaction is zero or below');
             throw new LocalizedException(__("Invalid payment amount."));
         }
 
@@ -343,20 +344,10 @@ class Payment implements MethodInterface
         $response = null;
         try {
             $response = $client->request();
-            /**
-             * @var $result \Aligent\Pinpay\Model\Result
-             */
-            $result = new Result($response);
-            $error = $result->getError();
-
-            if ($result->isSuccess()) {
-                $payment->setCcTransId($result->getToken());
-                $payment->setTransactionId($result->getToken());
-            } elseif($error) {
-                throw new LocalizedException(__($result->getErrorDescription()));
-            }
+            $this->_handleResponse($response, $payment);
         } catch (\Exception $e) {
             $this->_logger->error("Payment Error: " . $e->getMessage());
+            throw new LocalizedException(__($e->getMessage()));
         }
 
         return $this;
@@ -368,7 +359,7 @@ class Payment implements MethodInterface
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
         if ($amount <= 0) {
-            $this->_logger->addError('Expected amount for transaction is zero or below');
+            $this->_logger->error('Expected amount for transaction is zero or below');
             throw new LocalizedException(__("Invalid payment amount."));
         }
 
@@ -408,21 +399,31 @@ class Payment implements MethodInterface
         $response = null;
         try {
             $response = $client->request();
-            /**
-             * @var $result \Aligent\Pinpay\Model\Result
-             */
-            $result = new Result($response);
-            $error = $result->getError();
-            if ($result->isSuccess())
-            {
-                $payment->setCcTransId($result->getToken());
-                $payment->setTransactionId($result->getToken());
-            } elseif ($error) {
-                throw new LocalizedException(__($result->getErrorDescription()));
-            }
+            $this->_handleResponse($response, $payment);
         } catch (\Exception $e) {
             $this->_logger->error("Payment Error: " . $e->getMessage());
             throw new LocalizedException(__($e->getMessage()));
+        }
+    }
+
+    /**
+     * @param $response \Zend_Http_Response
+     * @param $payment \Magento\Payment\Model\InfoInterface
+     * @throws LocalizedException
+     */
+    protected function _handleResponse($response, $payment)
+    {
+        /**
+         * @var $result \Aligent\Pinpay\Model\Result
+         */
+        $result = new Result($response);
+        $error = $result->getError();
+        if ($result->isSuccess())
+        {
+            $payment->setCcTransId($result->getToken());
+            $payment->setTransactionId($result->getToken());
+        } elseif ($error) {
+            throw new LocalizedException(__($result->getErrorDescription()));
         }
     }
 
@@ -435,10 +436,17 @@ class Payment implements MethodInterface
      */
     protected function _buildAuthRequest($order, $payment, $amount, $capture = true)
     {
+        $descPrefix = $this->getConfigData('description_prefix', $order->getStoreId());
+        if(is_null($descPrefix)) {
+            $descPrefix = '';
+        }
+        else{
+            $descPrefix = $descPrefix . ' ';
+        }
         return [
             'email' => $order->getCustomerEmail(),
             'amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount),
-            'description' => 'Order: #' . $order->getRealOrderId(),
+            'description' => $descPrefix . 'Order: #' . $order->getRealOrderId(),
             'card_token' => $payment->getAdditionalInformation('card_token'),
             'ip_address' => $order->getRemoteIp(),
             'currency' => $order->getBaseCurrencyCode(),
@@ -487,6 +495,7 @@ class Payment implements MethodInterface
     public function acceptPayment(InfoInterface $payment)
     {
         // TODO: Implement acceptPayment() method.
+        return false;
     }
 
     /**
@@ -495,6 +504,7 @@ class Payment implements MethodInterface
     public function denyPayment(InfoInterface $payment)
     {
         // TODO: Implement denyPayment() method.
+        return false;
     }
 
     /**
@@ -547,6 +557,7 @@ class Payment implements MethodInterface
     public function initialize($paymentAction, $stateObject)
     {
         // TODO: Implement initialize() method.
+        return $this;
     }
 
     /**
