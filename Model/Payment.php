@@ -30,6 +30,12 @@ class Payment implements MethodInterface
     const TEST_GATEWAY_URL = 'https://test-api.pin.net.au/1/';
     const GATEWAY_URL = 'https://api.pin.net.au/1/';
 
+    const REQUEST_TYPE_AUTH_CAPTURE = 'AUTH_CAPTURE';
+
+    const REQUEST_TYPE_AUTH_ONLY = 'AUTH_ONLY';
+
+    const REQUEST_TYPE_CAPTURE_ONLY = 'CAPTURE_ONLY';
+
     /**
      * @var ScopeConfigInterface
      */
@@ -310,6 +316,50 @@ class Payment implements MethodInterface
     }
 
     /**
+     * @param $payment InfoInterface
+     * @param $order \Magento\Sales\Model\Order
+     * @param $amount float
+     * @param $transactionType string
+     * @return \Magento\Framework\HTTP\ZendClient
+     */
+    public function getClient($payment, $order, $amount, $transactionType = self::REQUEST_TYPE_AUTH_CAPTURE)
+    {
+        $client = $this->_httpClientFactory->create();
+        $endpoint = $this->getPaymentUrl() . 'charges';
+        $method = \Zend_Http_Client::POST;
+
+        if($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY)
+        {
+            $endpoint .= '/' . $payment->getCcTransId() . '/capture';
+            $method = \Zend_Http_Client::PUT;
+        }
+
+        $client->setAuth($this->getConfigData('secret_key'), $order->getStoreId());
+        $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
+        $client->setUri($endpoint);
+        $client->setMethod($method);
+
+        /**
+         * A capture-only request requires amount value as the only parameter.
+         * Note: the charge token is part of the URL.
+         */
+        if($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY)
+        {
+            $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(),$amount)];
+        }
+        else{
+            $capture = $transactionType === self::REQUEST_TYPE_AUTH_CAPTURE;
+            $data = $this->_buildAuthRequest($order, $payment, $amount, $capture);
+        }
+
+        foreach ($data as $reqParam => $reqValue) {
+            $client->setParameterPost($reqParam, $reqValue);
+        }
+
+        return $client;
+    }
+
+    /**
      * @inheritDoc
      */
     public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount)
@@ -319,27 +369,11 @@ class Payment implements MethodInterface
             throw new LocalizedException(__("Invalid payment amount."));
         }
 
-        $client = $this->_httpClientFactory->create();
-
-        $endpoint = $this->getPaymentUrl() . 'charges';
-        $method = $client::POST;
-
         /**
          * @var $order \Magento\Sales\Model\Order
          */
         $order = $payment->getOrder();
-
-        $data = $this->_buildAuthRequest($order, $payment, $amount, false);
-
-        $client->setUri($endpoint);
-        $client->setMethod($method);
-
-        foreach ($data as $reqParam => $reqValue) {
-            $client->setParameterPost($reqParam, $reqValue);
-        }
-
-        $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
-        $client->setAuth($this->getConfigData('secret_key'), $order->getStoreId());
+        $client = $this->getClient($payment, $order, $amount, self::REQUEST_TYPE_AUTH_ONLY);
 
         $response = null;
         try {
@@ -363,38 +397,17 @@ class Payment implements MethodInterface
             throw new LocalizedException(__("Invalid payment amount."));
         }
 
-        $client = $this->_httpClientFactory->create();
-
-        $endpoint = $this->getPaymentUrl() . 'charges';
-        $method = $client::POST;
-
-        //Check for an existing auth token
-        if ($payment->getCcTransId()) {
-            $endpoint .= '/' . $payment->getCcTransId() . '/capture';
-            $method = $client::PUT;
-        }
-
         /**
          * @var $order \Magento\Sales\Model\Order
          */
         $order = $payment->getOrder();
 
-        //Only require amount value if we're just doing a capture.
-        if ($payment->getCcTransId()) {
-            $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount)];
-        } else {
-            $data = $this->_buildAuthRequest($order, $payment, $amount, true);
+        $transactionType = self::REQUEST_TYPE_AUTH_CAPTURE;
+        if($payment->getCcTransId())
+        {
+            $transactionType = self::REQUEST_TYPE_CAPTURE_ONLY;
         }
-
-        $client->setUri($endpoint);
-        $client->setMethod($method);
-
-        foreach ($data as $reqParam => $reqValue) {
-            $client->setParameterPost($reqParam, $reqValue);
-        }
-
-        $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
-        $client->setAuth($this->getConfigData('secret_key'), $order->getStoreId());
+        $client = $this->getClient($payment, $order, $amount, $transactionType);
 
         $response = null;
         try {
