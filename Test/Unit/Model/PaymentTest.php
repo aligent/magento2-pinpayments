@@ -6,7 +6,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Payment\Model\InfoInterface;
 use Psr\Log\LoggerInterface;
 
-class PaymentTest extends \PHPUnit_Framework_TestCase
+class PaymentTest extends Fixture
 {
 
     protected $reflectionClass;
@@ -112,41 +112,6 @@ class PaymentTest extends \PHPUnit_Framework_TestCase
         $method->setAccessible(true);
         $result = $method->invoke($this->paymentMethod, $order, $paymentInfo, $order->getGrandTotal(), true);
         $this->assertEquals($result, $fixtures['request_1']);
-    }
-
-    public function getFixture($fileName)
-    {
-        $filename = $this->getTestClassDirectory() . "$fileName.json";
-        $content = file_get_contents($filename);
-
-        if ($content === false) {
-            return [];
-        }
-
-        return json_decode($content, true);
-    }
-
-    protected function getReflectionClass()
-    {
-        if ($this->reflectionClass === null) {
-            $this->reflectionClass = new \ReflectionClass($this);
-        }
-        return $this->reflectionClass;
-    }
-
-    /**
-     * @return string A subdirectory containing files specific to the current test class
-     */
-    protected function getTestClassDirectory()
-    {
-        $reflect = $this->getReflectionClass();
-        return $this->getTestDirectory() . $reflect->getShortName() . DIRECTORY_SEPARATOR;
-    }
-
-    protected function getTestDirectory()
-    {
-        $reflect = $this->getReflectionClass();
-        return dirname($reflect->getFileName()) . DIRECTORY_SEPARATOR;
     }
 
     protected function tearDown()
