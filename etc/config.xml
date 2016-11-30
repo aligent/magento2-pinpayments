@@ -7,8 +7,6 @@
                 <model>Aligent\Pinpay\Model\Payment</model>
                 <title>Credit Card (Pin Payments)</title>
                 <active>1</active>
-                <min_order_total>0</min_order_total>
-                <order_status>processing</order_status>
                 <test_mode>1</test_mode>
                 <payment_action>authorize_capture</payment_action>
             </pinpay>
