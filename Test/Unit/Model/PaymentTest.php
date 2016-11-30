@@ -24,27 +24,85 @@ class PaymentTest extends Fixture
     {
         $this->objectManager = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
         $pinHelper = $this->objectManager->getObject('Aligent\Pinpay\Helper\Pinpay');
+        $client = $this->objectManager->getObject('\Magento\Framework\HTTP\ZendClient');
+        $clientFactory = $this->getMockBuilder('\Magento\Framework\HTTP\ZendClientFactory')->disableOriginalConstructor()->getMock();
+        $clientFactory->expects($this->any())->method('create')->willReturn($client);
+
         $logger = $this->getMock(LoggerInterface::class);
 
-        $this->paymentMethod = $this->objectManager->getObject('Aligent\Pinpay\Model\Payment', ['pinHelper' => $pinHelper, 'logger' => $logger]);
+        $this->paymentMethod = $this->objectManager->getObject('Aligent\Pinpay\Model\Payment',
+            ['pinHelper' => $pinHelper, 'logger' => $logger, 'httpClientFactory' => $clientFactory]);
     }
 
-    public function testAuthorize()
+    public function testClientAuth()
     {
+        $fixtures = $this->getFixture("fx-request");
+
+        /**
+         * @var $order \Magento\Sales\Model\Order
+         */
+        $order = $this->objectManager->getObject('Magento\Sales\Model\Order');
+        $order->addData($fixtures['order_1']);
+
+        /**
+         * @var $paymentInfo \Magento\Sales\Model\Order\Payment\Info
+         */
+        $paymentInfo = $this->objectManager->getObject('Magento\Sales\Model\Order\Payment\Info');
+        foreach ($fixtures['payment_1']['additional_information'] as $key => $val) {
+            $paymentInfo->setAdditionalInformation($key, $val);
+        }
+
+        $client = $this->paymentMethod->getClient($paymentInfo, $order, $fixtures['order_1']['grand_total'],
+            \Aligent\Pinpay\Model\Payment::REQUEST_TYPE_AUTH_ONLY);
+
+        $methodProp = new \ReflectionProperty(\Magento\Framework\HTTP\ZendClient::class, 'method');
+        $methodProp->setAccessible(true);
+        $paramsProp = new \ReflectionProperty(\Magento\Framework\HTTP\ZendClient::class, 'paramsPost');
+        $paramsProp->setAccessible(true);
+
+        $this->assertEquals("/1/charges", $client->getUri()->getPath());
+        $this->assertEquals("POST", $methodProp->getValue($client));
+        $this->assertEquals($fixtures['authrequest_1'], $paramsProp->getValue($client));
 
     }
 
-    public function testCapture()
+    public function testClientCapture()
     {
+        $fixtures = $this->getFixture("fx-request");
 
+        /**
+         * @var $order \Magento\Sales\Model\Order
+         */
+        $order = $this->objectManager->getObject('Magento\Sales\Model\Order');
+        $order->addData($fixtures['order_1']);
+
+        /**
+         * @var $paymentInfo \Magento\Sales\Model\Order\Payment\Info
+         */
+        $paymentInfo = $this->objectManager->getObject('Magento\Sales\Model\Order\Payment\Info');
+        $paymentInfo->setCcTransId($fixtures['payment_1']['cc_trans_id']);
+        foreach ($fixtures['payment_1']['additional_information'] as $key => $val) {
+            $paymentInfo->setAdditionalInformation($key, $val);
+        }
+
+        $client = $this->paymentMethod->getClient($paymentInfo, $order, $fixtures['order_1']['grand_total'],
+            \Aligent\Pinpay\Model\Payment::REQUEST_TYPE_CAPTURE_ONLY);
+
+        $methodProp = new \ReflectionProperty(\Magento\Framework\HTTP\ZendClient::class, 'method');
+        $methodProp->setAccessible(true);
+        $paramsProp = new \ReflectionProperty(\Magento\Framework\HTTP\ZendClient::class, 'paramsPost');
+        $paramsProp->setAccessible(true);
+
+        $this->assertEquals("/1/charges/" . $fixtures['payment_1']['cc_trans_id'] . "/capture", $client->getUri()->getPath());
+        $this->assertEquals("PUT", $methodProp->getValue($client));
+        $this->assertEquals($fixtures['capturerequest_1'], $paramsProp->getValue($client));
     }
 
     public function testInvalidAuthAmount()
     {
-        if(method_exists($this, 'setExpectedException')){
+        if (method_exists($this, 'setExpectedException')) {
             $this->setExpectedException(LocalizedException::class);
-        }
-        else{
+        } else {
             $this->expectException(LocalizedException::class);
         }
         /**
@@ -56,10 +114,9 @@ class PaymentTest extends Fixture
 
     public function testInvalidCaptureAmount()
     {
-        if(method_exists($this, 'setExpectedException')){
+        if (method_exists($this, 'setExpectedException')) {
             $this->setExpectedException(LocalizedException::class);
-        }
-        else{
+        } else {
             $this->expectException(LocalizedException::class);
         }
         /**
@@ -74,10 +131,9 @@ class PaymentTest extends Fixture
         /**
          * Allows both new and old PHPUnit versions
          */
-        if(method_exists($this, 'setExpectedException')){
+        if (method_exists($this, 'setExpectedException')) {
             $this->setExpectedException(LocalizedException::class);
-        }
-        else{
+        } else {
             $this->expectException(LocalizedException::class);
         }
         $method = new \ReflectionMethod($this->paymentMethod, '_handleResponse');
@@ -92,7 +148,7 @@ class PaymentTest extends Fixture
         $response->expects($this->once())->method('getBody')->willReturn($fixtures['suspected_fraud']);
 
         $paymentInfo = $this->objectManager->getObject('Magento\Sales\Model\Order\Payment\Info');
-        $method->invoke($this->paymentMethod,$response,$paymentInfo);
+        $method->invoke($this->paymentMethod, $response, $paymentInfo);
     }
 
     public function testReqBuild()
@@ -102,7 +158,7 @@ class PaymentTest extends Fixture
         $order = $this->objectManager->getObject('Magento\Sales\Model\Order');
         $paymentInfo = $this->objectManager->getObject('Magento\Sales\Model\Order\Payment\Info');
 
-        foreach($fixtures['payment_1']['additional_information'] as $key => $val){
+        foreach ($fixtures['payment_1']['additional_information'] as $key => $val) {
             $paymentInfo->setAdditionalInformation($key, $val);
         }
 

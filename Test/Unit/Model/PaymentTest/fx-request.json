@@ -10,6 +10,7 @@
   "payment_1": {
     "entity_id": 1,
     "parent_id": 1,
+    "cc_trans_id": "ch_ziFaYeBEH_djTatDV_evRQ",
     "additional_information": {
       "card_token": "card_hyLpShgI4ePJQ_4yp-peOw",
       "method_title": "Credit Card (Pin Payments)"
@@ -23,5 +24,17 @@
     "currency": "AUD",
     "ip_address": "127.0.0.1",
     "card_token": "card_hyLpShgI4ePJQ_4yp-peOw"
+  },
+  "authrequest_1": {
+    "email": "matthew.oloughlin@aligent.com.au",
+    "amount": 45000,
+    "description": "Order: #1000000001",
+    "capture": false,
+    "currency": "AUD",
+    "ip_address": "127.0.0.1",
+    "card_token": "card_hyLpShgI4ePJQ_4yp-peOw"
+  },
+  "capturerequest_1": {
+    "amount": 45000
   }
 }
