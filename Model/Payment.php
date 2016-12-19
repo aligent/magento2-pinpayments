@@ -213,6 +213,7 @@ class Payment implements MethodInterface
     public function canEdit()
     {
         // TODO: Implement canEdit() method.
+        return false;
     }
 
     /**
@@ -221,6 +222,7 @@ class Payment implements MethodInterface
     public function canFetchTransactionInfo()
     {
         // TODO: Implement canFetchTransactionInfo() method.
+        return true;
     }
 
     /**
@@ -305,6 +307,7 @@ class Payment implements MethodInterface
     public function validate()
     {
         // TODO: Implement validate()
+        return $this;
     }
 
     /**
@@ -328,8 +331,7 @@ class Payment implements MethodInterface
         $endpoint = $this->getPaymentUrl() . 'charges';
         $method = \Zend_Http_Client::POST;
 
-        if($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY)
-        {
+        if ($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY) {
             $endpoint .= '/' . $payment->getCcTransId() . '/capture';
             $method = \Zend_Http_Client::PUT;
         }
@@ -343,11 +345,9 @@ class Payment implements MethodInterface
          * A capture-only request requires amount value as the only parameter.
          * Note: the charge token is part of the URL.
          */
-        if($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY)
-        {
-            $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(),$amount)];
-        }
-        else{
+        if ($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY) {
+            $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount)];
+        } else {
             $capture = $transactionType === self::REQUEST_TYPE_AUTH_CAPTURE;
             $data = $this->_buildAuthRequest($order, $payment, $amount, $capture);
         }
@@ -403,8 +403,7 @@ class Payment implements MethodInterface
         $order = $payment->getOrder();
 
         $transactionType = self::REQUEST_TYPE_AUTH_CAPTURE;
-        if($payment->getCcTransId())
-        {
+        if ($payment->getCcTransId()) {
             $transactionType = self::REQUEST_TYPE_CAPTURE_ONLY;
         }
         $client = $this->getClient($payment, $order, $amount, $transactionType);
@@ -431,8 +430,7 @@ class Payment implements MethodInterface
          */
         $result = new Result($response);
         $error = $result->getError();
-        if ($result->isSuccess())
-        {
+        if ($result->isSuccess()) {
             $payment->setCcTransId($result->getToken());
             $payment->setTransactionId($result->getToken());
         } elseif ($error) {
@@ -450,10 +448,9 @@ class Payment implements MethodInterface
     protected function _buildAuthRequest($order, $payment, $amount, $capture = true)
     {
         $descPrefix = $this->getConfigData('description_prefix', $order->getStoreId());
-        if(is_null($descPrefix)) {
+        if (is_null($descPrefix)) {
             $descPrefix = '';
-        }
-        else{
+        } else {
             $descPrefix = $descPrefix . ' ';
         }
         return [
