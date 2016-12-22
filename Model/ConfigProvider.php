@@ -35,14 +35,12 @@ class ConfigProvider implements \Magento\Checkout\Model\ConfigProviderInterface
      * @param RequestInterface $request
      * @param UrlInterface $urlBuilder
      * @param PaymentHelper $paymentHelper
-     * @param PinPayment $paymentMethod
      * @param $methodCode
      */
     public function __construct(
         RequestInterface $request,
         UrlInterface $urlBuilder,
         PaymentHelper $paymentHelper,
-        PinPayment $paymentMethod,
         $methodCode
     ) {
         $this->request = $request;

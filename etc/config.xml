@@ -9,6 +9,7 @@
                 <active>1</active>
                 <test_mode>1</test_mode>
                 <payment_action>authorize_capture</payment_action>
+                <secret_key backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
             </pinpay>
         </payment>
     </default>
