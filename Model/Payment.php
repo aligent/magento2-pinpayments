@@ -130,6 +130,7 @@ class Payment implements MethodInterface
     public function getStore()
     {
         // TODO: Implement getStore() method.
+        return \Magento\Store\Model\Store::DEFAULT_STORE_ID;
     }
 
     /**
