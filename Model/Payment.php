@@ -13,7 +13,6 @@ use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
 use Magento\Quote\Api\Data\PaymentInterface;
 use Aligent\Pinpay\Helper\Pinpay as PinHelper;
-use Magento\Framework\Encryption\EncryptorInterface;
 
 /**
  *
@@ -65,30 +64,22 @@ class Payment implements MethodInterface
     protected $_logger;
 
     /**
-     * @var EncryptorInterface
-     */
-    protected $_encryptor;
-
-    /**
      * Payment constructor.
      * @param ScopeConfigInterface $scopeConfigInterface
      * @param LoggerInterface $logger
      * @param ZendClientFactory $httpClientFactory
      * @param PinHelper $pinHelper
-     * @param EncryptorInterface $encryptor
      */
     public function __construct(
         ScopeConfigInterface $scopeConfigInterface,
         LoggerInterface $logger,
         ZendClientFactory $httpClientFactory,
-        PinHelper $pinHelper,
-        EncryptorInterface $encryptor
+        PinHelper $pinHelper
     ) {
         $this->_config = $scopeConfigInterface;
         $this->_logger = $logger;
         $this->_httpClientFactory = $httpClientFactory;
         $this->_pinHelper = $pinHelper;
-        $this->_encryptor = $encryptor;
     }
 
     /**
@@ -345,9 +336,7 @@ class Payment implements MethodInterface
             $method = \Zend_Http_Client::PUT;
         }
 
-        $client->setAuth(
-            $this->_encryptor->decrypt($this->getConfigData('secret_key', $order->getStoreId()))
-        );
+        $client->setAuth($this->getConfigData('secret_key', $order->getStoreId()));
         $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
         $client->setUri($endpoint);
         $client->setMethod($method);
