@@ -5,7 +5,7 @@ namespace Aligent\Pinpay\Model;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Payment\Helper\Data as PaymentHelper;
-use Aligent\Pinpay\Model\Payment as PinPayment;
+use Magento\Payment\Model\IframeConfigProvider;
 
 class ConfigProvider implements \Magento\Checkout\Model\ConfigProviderInterface
 {
@@ -53,6 +53,11 @@ class ConfigProvider implements \Magento\Checkout\Model\ConfigProviderInterface
     {
         return [
             'payment' => [
+                'iframe' => [
+                    'timeoutTime' => [
+                        $this->methodCode => IframeConfigProvider::TIMEOUT_TIME
+                    ]
+                ],
                 'pinpay' => [
                     'source' => $this->getSource(),
                     'apiKey' => $this->getApiKey(),
