@@ -17,6 +17,8 @@ namespace Aligent\Pinpay\Helper;
       */
      public function getRequestAmount($currencyCode, $amount)
      {
-        return $amount * 100;
+         // Round to avoid issue where number of cents is a decimal due to
+         // floating-point precision errors.
+         return round($amount * 100);
      }
  }
