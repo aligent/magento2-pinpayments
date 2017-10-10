@@ -22,6 +22,7 @@ define(
             iframe: null,
             token_element_selector: null,
             billing_address: null,
+            submitted: false,
 
             initialize: function () {
                 this._super();
@@ -78,6 +79,11 @@ define(
                 this.getCardToken();
             },
             _placeOrder: function() {
+                // protection against duplicate form submission
+                if (this.submitted === true) {
+                    return;
+                }
+                this.submitted = true;
                 fullScreenLoader.startLoader();
 
                 $.when(
@@ -143,6 +149,7 @@ define(
             },
 
             fail: function() {
+                this.submitted = false;
                 fullScreenLoader.stopLoader();
             },
 
