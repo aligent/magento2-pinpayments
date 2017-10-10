@@ -149,6 +149,7 @@ define(
             },
 
             fail: function() {
+                this.submitted = false;
                 fullScreenLoader.stopLoader();
             },
 
