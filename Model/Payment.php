@@ -196,7 +196,7 @@ class Payment implements MethodInterface
      */
     public function canUseInternal()
     {
-        return true;
+        return false;
     }
 
     /**
