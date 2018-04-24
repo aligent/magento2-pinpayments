@@ -3,6 +3,7 @@
 namespace Aligent\Pinpay\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\HTTP\ZendClientFactory;
 use Magento\Payment\Model\MethodInterface;
@@ -37,6 +38,11 @@ class Payment implements MethodInterface
     const REQUEST_TYPE_CAPTURE_ONLY = 'CAPTURE_ONLY';
 
     /**
+     * @var string
+     */
+    protected $_formBlockType = \Aligent\Pinpay\Block\Form\Offline::class;
+
+    /**
      * @var ScopeConfigInterface
      */
     protected $_config;
@@ -64,13 +70,20 @@ class Payment implements MethodInterface
     protected $_logger;
 
     /**
+     * @var State
+     */
+    protected $_appState;
+
+    /**
      * Payment constructor.
+     * @param State $appState
      * @param ScopeConfigInterface $scopeConfigInterface
      * @param LoggerInterface $logger
      * @param ZendClientFactory $httpClientFactory
      * @param PinHelper $pinHelper
      */
     public function __construct(
+        State $appState,
         ScopeConfigInterface $scopeConfigInterface,
         LoggerInterface $logger,
         ZendClientFactory $httpClientFactory,
@@ -80,6 +93,7 @@ class Payment implements MethodInterface
         $this->_logger = $logger;
         $this->_httpClientFactory = $httpClientFactory;
         $this->_pinHelper = $pinHelper;
+        $this->_appState = $appState;
     }
 
     /**
@@ -96,6 +110,9 @@ class Payment implements MethodInterface
      */
     public function getFormBlockType()
     {
+        if ($this->isOffline()) {
+            return $this->_formBlockType;
+        }
         return "";
     }
 
@@ -196,7 +213,7 @@ class Payment implements MethodInterface
      */
     public function canUseInternal()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -247,7 +264,9 @@ class Payment implements MethodInterface
      */
     public function isOffline()
     {
-        // TODO: Implement isOffline() method.
+        if ($this->_appState->getAreaCode() == \Magento\Framework\App\Area::AREA_ADMINHTML) {
+            return true;
+        }
         return false;
     }
 
@@ -402,19 +421,24 @@ class Payment implements MethodInterface
          */
         $order = $payment->getOrder();
 
-        $transactionType = self::REQUEST_TYPE_AUTH_CAPTURE;
-        if ($payment->getCcTransId()) {
-            $transactionType = self::REQUEST_TYPE_CAPTURE_ONLY;
-        }
-        $client = $this->getClient($payment, $order, $amount, $transactionType);
+        if ($this->isOffline()) {
+            $payment->setCcTransId($payment->getAdditionalInformation('reference_number'));
+            $payment->setTransactionId($payment->getAdditionalInformation('reference_number'));
+        } else {
+            $transactionType = self::REQUEST_TYPE_AUTH_CAPTURE;
+            if ($payment->getCcTransId()) {
+                $transactionType = self::REQUEST_TYPE_CAPTURE_ONLY;
+            }
+            $client = $this->getClient($payment, $order, $amount, $transactionType);
 
-        $response = null;
-        try {
-            $response = $client->request();
-            $this->_handleResponse($response, $payment);
-        } catch (\Exception $e) {
-            $this->_logger->error("Payment Error: " . $e->getMessage());
-            throw new LocalizedException(__($e->getMessage()));
+            $response = null;
+            try {
+                $response = $client->request();
+                $this->_handleResponse($response, $payment);
+            } catch (\Exception $e) {
+                $this->_logger->error("Payment Error: " . $e->getMessage());
+                throw new LocalizedException(__($e->getMessage()));
+            }
         }
     }
 
@@ -540,7 +564,11 @@ class Payment implements MethodInterface
         }
 
         $info = $this->getInfoInstance();
-        $info->setAdditionalInformation('card_token', $additionalData->getCardToken());
+        if ($this->isOffline()) {
+            $info->setAdditionalInformation('reference_number', $additionalData->getReferenceNumber());
+        } else {
+            $info->setAdditionalInformation('card_token', $additionalData->getCardToken());
+        }
 
         return $this;
     }

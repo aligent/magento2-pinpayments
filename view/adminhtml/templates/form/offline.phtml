@@ -1,0 +1,16 @@
+<?php
+// @codingStandardsIgnoreFile
+/**
+ * @var $block \Aligent\Pinpay\Block\Form\Offline
+ */
+?>
+<fieldset class="admin__fieldset payment-method" id="payment_form_<?= $block->escapeHtml($block->getMethodCode()) ?>">
+    <div class="admin__field _required">
+        <label for="reference_number" class="admin__field-label"><span><?= $block->escapeHtml(__('Payment Reference Number')) ?></span></label>
+        <div class="admin__field-control">
+            <input type="text" id="reference_number" name="payment[reference_number]"
+                   title="<?= $block->escapeHtml(__("Payment Reference Number")) ?>" class="required-entry admin__control-text"
+                   value="<?= /* @noEscape */ $block->getInfoData('reference_number') ?>"/>
+        </div>
+    </div>
+</fieldset>
