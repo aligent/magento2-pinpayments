@@ -457,6 +457,7 @@ class Payment implements MethodInterface
         if ($result->isSuccess()) {
             $payment->setCcTransId($result->getToken());
             $payment->setTransactionId($result->getToken());
+            $payment->setCcType($result->getCCType());
         } elseif ($error) {
             throw new LocalizedException(__($result->getErrorDescription()));
         }
