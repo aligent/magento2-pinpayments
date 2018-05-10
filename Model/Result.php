@@ -68,6 +68,28 @@ class Result extends DataObject
     }
 
     /**
+     * @return string | null
+     */
+    public function getCCType()
+    {
+         $oCard =  $this->getResponseValue('card');
+         return (isset($oCard->scheme)) ? $oCard->scheme : null;
+    }
+
+    /**
+     * @param $vKey
+     *
+     * @return mixed
+     */
+    protected function getResponseValue($vKey)
+    {
+        if (!isset($this->_response) || (!isset($this->_response->response)) || (!isset($this->_response->response->$vKey))){
+            return null;
+        }
+        return $this->_response->response->$vKey;
+    }
+
+    /**
      * @return null | string
      */
     public function getError()
