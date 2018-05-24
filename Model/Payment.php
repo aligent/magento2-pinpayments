@@ -506,10 +506,6 @@ class Payment implements MethodInterface
     /**
      * @inheritDoc
      */
-
-    /**
-     * @inheritDoc
-     */
     public function refund(Magento\Payment\Model\InfoInterface $payment, $amount)
     {
         if ($amount <= 0) {
@@ -558,6 +554,8 @@ class Payment implements MethodInterface
                 throw new LocalizedException(__($e->getMessage()));
             }
         }
+        //required by interface
+        return $this;
     }
 
     /**
