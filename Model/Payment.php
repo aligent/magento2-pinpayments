@@ -539,7 +539,7 @@ class Payment implements MethodInterface
                 $online = $creditMemo->getDoTransaction();
             }
         }
-        $online = is_null($online) ? $this->isOffline() : $online;
+        $online = is_null($online) ? !$this->isOffline() : $online;
         if (!$online) {
             $payment->setCcTransId($payment->getAdditionalInformation('reference_number'));
             $payment->setTransactionId($payment->getAdditionalInformation('reference_number'));
