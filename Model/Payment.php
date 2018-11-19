@@ -356,7 +356,7 @@ class Payment implements MethodInterface
         }
 
         $client->setAuth($this->getConfigData('secret_key', $order->getStoreId()));
-        $client->setConfig(['maxredirects' => 0, 'timeout' => 30]);
+        $client->setConfig(['maxredirects' => 0, 'timeout' => 120]);
         $client->setUri($endpoint);
         $client->setMethod($method);
 
