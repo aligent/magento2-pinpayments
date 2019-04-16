@@ -11,7 +11,7 @@ use Magento\Payment\Model\InfoInterface;
 use Magento\Framework\DataObject;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Store\Model\ScopeInterface;
-use Psr\Log\LoggerInterface;
+use Aligent\Pinpay\Model\Logger\Logger;
 use Magento\Quote\Api\Data\PaymentInterface;
 use Aligent\Pinpay\Helper\Pinpay as PinHelper;
 
@@ -65,7 +65,7 @@ class Payment implements MethodInterface
     protected $_httpClientFactory;
 
     /**
-     * @var LoggerInterface
+     * @var Logger
      */
     protected $_logger;
 
@@ -78,14 +78,14 @@ class Payment implements MethodInterface
      * Payment constructor.
      * @param State $appState
      * @param ScopeConfigInterface $scopeConfigInterface
-     * @param LoggerInterface $logger
+     * @param Logger $logger
      * @param ZendClientFactory $httpClientFactory
      * @param PinHelper $pinHelper
      */
     public function __construct(
         State $appState,
         ScopeConfigInterface $scopeConfigInterface,
-        LoggerInterface $logger,
+        Logger $logger,
         ZendClientFactory $httpClientFactory,
         PinHelper $pinHelper
     ) {
@@ -399,7 +399,7 @@ class Payment implements MethodInterface
             $response = $client->request();
             $this->_handleResponse($response, $payment);
         } catch (\Exception $e) {
-            $this->_logger->error("Payment Error: " . $e->getMessage());
+            $this->_logger->error("Payment Error for Order {$order->getIncrementId()} and Quote {$order->getQuoteId()}: " . $e->getMessage());
             throw new LocalizedException(__($e->getMessage()));
         }
 
@@ -436,7 +436,7 @@ class Payment implements MethodInterface
                 $response = $client->request();
                 $this->_handleResponse($response, $payment);
             } catch (\Exception $e) {
-                $this->_logger->error("Payment Error: " . $e->getMessage());
+                $this->_logger->error("Payment Error for Order {$order->getIncrementId()} and Quote {$order->getQuoteId()}: " . $e->getMessage());
                 throw new LocalizedException(__($e->getMessage()));
             }
         }
