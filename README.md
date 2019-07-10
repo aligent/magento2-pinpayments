@@ -36,3 +36,9 @@ The hosted-field solution embeds an iframe within the M2 checkout and avoids the
 ## Issues
 
 Payment reviews are not currently supported, a suspected_fraud response will be treated the same as any other error, and the order will not be created.
+
+## Legal
+
+(c) 2016-2019 Aligent Consulting
+
+Licensed under Open Source License (OSL) v3.0
