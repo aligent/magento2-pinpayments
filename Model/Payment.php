@@ -551,7 +551,7 @@ class Payment implements MethodInterface
         if ($storeId) {
             return $this->_config->getValue($configKey, ScopeInterface::SCOPE_STORES, $storeId);
         }
-        return $this->_config->getValue($configKey, 'stores');
+        return $this->_config->getValue($configKey, ScopeInterface::SCOPE_STORES);
     }
 
     /**
