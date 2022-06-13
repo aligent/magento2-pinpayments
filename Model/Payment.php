@@ -14,6 +14,7 @@ use Magento\Store\Model\ScopeInterface;
 use Aligent\Pinpay\Model\Logger\Logger;
 use Magento\Quote\Api\Data\PaymentInterface;
 use Aligent\Pinpay\Helper\Pinpay as PinHelper;
+use Magento;
 
 /**
  *
@@ -36,6 +37,8 @@ class Payment implements MethodInterface
     const REQUEST_TYPE_AUTH_ONLY = 'AUTH_ONLY';
 
     const REQUEST_TYPE_CAPTURE_ONLY = 'CAPTURE_ONLY';
+
+    const REQUEST_TYPE_REFUND = 'REFUND';
 
     /**
      * @var string
@@ -186,8 +189,7 @@ class Payment implements MethodInterface
      */
     public function canRefund()
     {
-        // TODO: Implement canRefund() method.
-        return false;
+        return true;
     }
 
     /**
@@ -354,6 +356,10 @@ class Payment implements MethodInterface
             $endpoint .= '/' . $payment->getCcTransId() . '/capture';
             $method = \Zend_Http_Client::PUT;
         }
+        elseif ($transactionType == static::REQUEST_TYPE_REFUND){
+            $endpoint .= '/' . $payment->getData('refund_transaction_id') . '/refunds';
+            $method = \Zend_Http_Client::POST;
+        }
 
         $client->setAuth($this->getConfigData('secret_key', $order->getStoreId()));
         $client->setConfig(['maxredirects' => 0, 'timeout' => 120]);
@@ -366,7 +372,11 @@ class Payment implements MethodInterface
          */
         if ($transactionType === self::REQUEST_TYPE_CAPTURE_ONLY) {
             $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount)];
-        } else {
+        }
+        elseif ($transactionType === self::REQUEST_TYPE_REFUND){
+            $data = ['amount' => $this->_pinHelper->getRequestAmount($order->getBaseCurrencyCode(), $amount)];
+        }
+        else {
             $capture = $transactionType === self::REQUEST_TYPE_AUTH_CAPTURE;
             $data = $this->_buildAuthRequest($order, $payment, $amount, $capture);
         }
@@ -461,6 +471,11 @@ class Payment implements MethodInterface
         } elseif ($error) {
             throw new LocalizedException(__($result->getErrorDescription()));
         }
+        //success is set to null in response but approved (like in pending credit memo)
+        elseif($result->isApproved()){
+            $payment->setCcTransId($result->getToken());
+            $payment->setTransactionId($result->getToken());
+        }
     }
 
     /**
@@ -488,13 +503,58 @@ class Payment implements MethodInterface
             'capture' => $capture
         ];
     }
-
     /**
      * @inheritDoc
      */
-    public function refund(\Magento\Payment\Model\InfoInterface $payment, $amount)
+    public function refund(Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        // TODO: Implement refund() method.
+        if ($amount <= 0) {
+            $this->_logger->error('Expected amount for transaction is zero or below');
+            throw new LocalizedException(__("Invalid payment amount."));
+        }
+        /**
+         * @var $payment Magento\Sales\Api\Data\OrderPaymentInterface
+         */
+        if (!($payment instanceof Magento\Sales\Api\Data\OrderPaymentInterface)){
+            throw new LocalizedException(__("refund payment needs to be instance of Magento\Sales\Api\Data\OrderPaymentInterface"));
+        }
+        if (!$this->canRefund()) {
+            throw new LocalizedException (__('Refund action is not available.'));
+        }
+        /* Rounding error may occur, checking if the differences is not less than 0.5c  */
+        if ($amount - $payment->getAmountPaid() - $payment->getAmountRefunded() >= 0.005) {
+            throw new LocalizedException(__("Invalid refund amount"));
+        }
+
+        $order = null;
+        $online = null;
+        if ($payment instanceof Magento\Sales\Model\Order\Payment){
+            $order = $payment->getOrder();
+            $creditMemo = $payment->getCreditmemo();
+            if ($creditMemo){
+                $online = $creditMemo->getDoTransaction();
+            }
+        }
+        $online = is_null($online) ? !$this->isOffline() : $online;
+        if (!$online) {
+            $payment->setCcTransId($payment->getAdditionalInformation('reference_number'));
+            $payment->setTransactionId($payment->getAdditionalInformation('reference_number'));
+        }
+        //online transaction
+        else {
+            $transactionType = self::REQUEST_TYPE_REFUND;
+            $client = $this->getClient($payment, $order, $amount, $transactionType);
+
+            $response = null;
+            try {
+                $response = $client->request();
+                $this->_handleResponse($response, $payment);
+            } catch (\Exception $e) {
+                $this->_logger->error("Payment Error: " . $e->getMessage());
+                throw new LocalizedException(__($e->getMessage()));
+            }
+        }
+        //required by interface
         return $this;
     }
 

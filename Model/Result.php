@@ -67,6 +67,11 @@ class Result extends DataObject
         return '';
     }
 
+
+    public function isApproved()
+    {
+        return $this->_responseCode === static::HTTP_RESPONSE_CODE_APPROVED;
+    }
     /**
      * @return string | null
      */
@@ -81,7 +86,7 @@ class Result extends DataObject
      *
      * @return mixed
      */
-    protected function getResponseValue($vKey)
+    public function getResponseValue($vKey)
     {
         if (!isset($this->_response) || (!isset($this->_response->response)) || (!isset($this->_response->response->$vKey))){
             return null;
