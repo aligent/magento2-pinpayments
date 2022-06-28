@@ -2,17 +2,10 @@
   "name": "aligent/pinpay",
   "description": "",
   "require": {
-    "php": "~7.0.0||~7.1.0||~7.2.0||~7.3.0||~7.4.0",
+    "php": "^7.0||^8.0",
     "magento/magento-composer-installer": "*"
   },
-  "suggest": {
-
-  },
   "type": "magento2-module",
-  "version": "0.1.0",
-  "license": [
-
-  ],
   "autoload": {
     "files": [
       "registration.php"
