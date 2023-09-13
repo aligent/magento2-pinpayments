@@ -579,7 +579,8 @@ class Payment implements MethodInterface
      */
     public function isAvailable(CartInterface $quote = null)
     {
-        return $this->isActive();
+        $storeId = $quote->getStoreId();
+        return $this->isActive($storeId);
     }
 
     /**
@@ -587,7 +588,7 @@ class Payment implements MethodInterface
      */
     public function isActive($storeId = null)
     {
-        return $this->getConfigData('active');
+        return $this->getConfigData('active', $storeId);
     }
 
     /**
