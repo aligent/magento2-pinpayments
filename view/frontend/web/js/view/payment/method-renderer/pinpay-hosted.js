@@ -61,7 +61,7 @@ define(
             handleMessage: function(msg) {
                 //Pull originalEvent from resulting jQuery wrapper
                 var msgEvent = msg.originalEvent;
-                if(msgEvent.origin === 'https://cdn.pin.net.au')
+                if(msgEvent.origin === 'https://cdn.pinpayments.com')
                 {
                     this.card_token = msgEvent.data;
                     this._placeOrder();

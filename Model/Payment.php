@@ -28,8 +28,8 @@ class Payment implements MethodInterface
 
     const PAYMENT_CODE = 'pinpay';
     const CONFIG_PATH_PREFIX = 'payment/pinpay/';
-    const TEST_GATEWAY_URL = 'https://test-api.pin.net.au/1/';
-    const GATEWAY_URL = 'https://api.pin.net.au/1/';
+    const TEST_GATEWAY_URL = 'https://test-api.pinpayments.com/1/';
+    const GATEWAY_URL = 'https://api.pinpayments.com/1/';
 
     const REQUEST_TYPE_AUTH_CAPTURE = 'AUTH_CAPTURE';
 
